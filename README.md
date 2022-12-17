@@ -6,6 +6,12 @@ Solutions for [Advent of Code](https://adventofcode.com/) in [Rust](https://www.
 
 <!--- advent_readme_stars table --->
 
+# TL;DR;
+```
+cargo scaffold <day>
+cargo download <day>
+```
+
 ---
 
 ## Template setup
