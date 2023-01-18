@@ -1,9 +1,5 @@
 type Sections = Vec<u32>;
 
-// impl Sections {
-//     fn new(start: u32, end: u32) {}
-// }
-
 struct Pair {
     first: Sections,
     second: Sections,
@@ -21,19 +17,20 @@ impl Pair {
 }
 
 fn parse_pairs(line: &str) -> Pair {
-    let split = line
-        .split(",")
-        .map(|section| -> Sections {
-            let mut split_section = section.split("-");
-            vec![
-                split_section.next().unwrap().parse::<u32>().unwrap(),
-                split_section.next().unwrap().parse::<u32>().unwrap(),
-            ]
-        })
-        .collect::<Vec<Sections>>();
+    let (left, right) = line.split_once(",").unwrap();
+    let ((left_start, left_end), (right_start, right_end)) = (
+        left.split_once("-").unwrap(),
+        right.split_once("-").unwrap(),
+    );
     Pair {
-        first: split[0].clone(),
-        second: split[1].clone(),
+        first: vec![
+            left_start.parse::<u32>().unwrap(),
+            left_end.parse::<u32>().unwrap(),
+        ],
+        second: vec![
+            right_start.parse::<u32>().unwrap(),
+            right_end.parse::<u32>().unwrap(),
+        ],
     }
 }
 
