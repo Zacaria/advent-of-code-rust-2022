@@ -60,7 +60,6 @@ fn parse_stacks(stack_lines: Vec<String>) -> HashMap<u32, Vec<char>> {
     )
 }
 
-#[derive(Clone)]
 struct Stacks {
     crates: HashMap<u32, Vec<char>>,
 }
@@ -69,30 +68,6 @@ impl Stacks {
     fn new(crates: HashMap<u32, Vec<char>>) -> Self {
         Self { crates }
     }
-
-    // fn init(self, stack_lines: Vec<String>) -> Self {
-    //     stack_lines
-    //         .iter()
-    //         .rev()
-    //         .fold(self, |mut stacks, line| -> Self {
-    //             line.chars().enumerate().for_each(|(index, c)| {
-    //                 // -1 to skip first [ to ignore
-    //                 let pos_lookup = index as i32 % 4 - 1;
-    //                 let is_crate_pos = pos_lookup == 0;
-    //                 let stack_pos = index as i32 / 4;
-    //                 if is_crate_pos && c != ' ' {
-    //                     let mut current_stack: Vec<char> = stacks
-    //                         .crates
-    //                         .get(&(stack_pos as u32 + 1))
-    //                         .unwrap_or(&vec![])
-    //                         .to_vec();
-    //                     current_stack.push(c);
-    //                     stacks.crates.insert(stack_pos as u32 + 1, current_stack);
-    //                 }
-    //             });
-    //             stacks
-    //         })
-    // }
 
     fn move_item(mut self, command: &Command) -> Self {
         // println!("stacks before move {:#?}", self.crates);
@@ -186,8 +161,7 @@ pub fn part_one(input: &str) -> Option<String> {
     let final_state = commands
         .iter()
         .fold(stacks, |current_state: Stacks, command| -> Stacks {
-            let new_stacks = current_state.clone();
-            new_stacks.move_item(&command)
+            current_state.move_item(&command)
         });
 
     let result = get_top_crates(&final_state);
@@ -204,8 +178,7 @@ pub fn part_two(input: &str) -> Option<String> {
     let final_state = commands
         .iter()
         .fold(stacks, |current_state: Stacks, command| -> Stacks {
-            let new_stacks = current_state.clone();
-            new_stacks.move_items(&command)
+            current_state.move_items(&command)
         });
 
     let result = get_top_crates(&final_state);
