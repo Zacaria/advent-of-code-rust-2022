@@ -1,11 +1,5 @@
 use regex::Regex;
 use std::collections::HashMap;
-use std::fmt;
-
-struct Stack {
-    id: u32,
-    crates: Vec<char>,
-}
 
 #[derive(Debug)]
 struct Command {
@@ -18,20 +12,8 @@ trait Stacks {
     fn move_item(&mut self, command: &Command);
 }
 
-// impl fmt::Display for dyn Stacks {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         for (i, stack) in self.enumerate() {
-//             write!(f, "{} : ({:?})", i, stack);
-//         }
-//     }
-// }
-
 impl Stacks for HashMap<u32, Vec<char>> {
     fn move_item(&mut self, command: &Command) {
-        // let from = self.get_mut(&command.from).expect("from not found !");
-        // let to = self.get_mut(&command.to).expect("to not found !");
-
-        // let moved
         println!("stacks before move {:#?}", self);
         for _ in 0..command.nb {
             let item: char = self
@@ -39,8 +21,6 @@ impl Stacks for HashMap<u32, Vec<char>> {
                 .expect("from not found !")
                 .pop()
                 .expect("tried to move from an empty stack !");
-
-            // println!("{:#?}", &command.to);
 
             self.get_mut(&command.to)
                 .expect("to not found !")
@@ -52,10 +32,9 @@ impl Stacks for HashMap<u32, Vec<char>> {
 }
 
 pub fn part_one(input: &str) -> Option<String> {
-    // let st: HashMap<u32, Vec<char>> = HashMap::new();
     let mut stack_lines: Vec<String> = Vec::new();
     let mut command_lines: Vec<String> = Vec::new();
-    let lines = input
+    input
         .lines()
         .map(|line| line.to_string())
         .for_each(|line| match line {
@@ -73,21 +52,18 @@ pub fn part_one(input: &str) -> Option<String> {
                 let is_crate_pos = pos_lookup == 0;
                 let stack_pos = index as i32 / 4;
                 if is_crate_pos && c != ' ' {
-                    let mut current_stack: Vec<char> =
-                        stacks.get(&(stack_pos as u32)).unwrap_or(&vec![]).to_vec();
+                    let mut current_stack: Vec<char> = stacks
+                        .get(&(stack_pos as u32 + 1))
+                        .unwrap_or(&vec![])
+                        .to_vec();
                     current_stack.push(c);
-                    stacks.insert(stack_pos as u32, current_stack);
+                    stacks.insert(stack_pos as u32 + 1, current_stack);
                 }
             });
             stacks
         },
     );
 
-    // parse stacks
-    // let stacks: HashMap<u32, Vec<Option<char>>> = HashMap::new();
-    // raw_stacks.fo
-    // parse commands
-    // let commands: Vec<Command> = Vec::new();
     let reg = Regex::new(r"^move (\d+) from (\d+) to (\d+)$").unwrap();
 
     let final_state = command_lines
@@ -102,24 +78,18 @@ pub fn part_one(input: &str) -> Option<String> {
             return Command {
                 nb: captures
                     .get(1)
-                    // .expect("capture index 0 not found")
                     .map(|x| x.as_str().parse::<u32>().expect("ParseIntErro"))
                     .expect("failed map nb"),
                 from: captures
                     .get(2)
-                    // .expect("capture index 1 not found")
                     .map(|x| x.as_str().parse::<u32>().expect("ParseIntErro"))
-                    .expect("failed map from")
-                    - 1,
+                    .expect("failed map from"),
                 to: captures
                     .get(3)
-                    // .expect("capture index 0 not found")
                     .map(|x| x.as_str().parse::<u32>().expect("ParseIntErro"))
-                    .expect("failed map to")
-                    - 1,
+                    .expect("failed map to"),
             };
         })
-        // .collect::<Vec<Command>>();
         .fold(
             initial_state,
             |current_state: HashMap<u32, Vec<char>>, command| -> HashMap<u32, Vec<char>> {
@@ -129,15 +99,9 @@ pub fn part_one(input: &str) -> Option<String> {
             },
         );
 
-    // println!("{:#?}", cs.next());
-    // for command in commands {
-    //     raw_stacks.move_item(&command);
-    // }
-
     let mut result = String::new();
 
-    // let mut result = "";
-    for index in 0..final_state.len() {
+    for index in 1..=final_state.len() {
         let to_push = final_state
             .get(&(index as u32))
             .expect("index not found")
@@ -146,10 +110,6 @@ pub fn part_one(input: &str) -> Option<String> {
         result.push(*to_push);
     }
     println!("{} {:#?} ", result, final_state);
-    // lines.
-    // apply commands
-
-    // get first on stacks
 
     Some(result)
 }
