@@ -8,86 +8,17 @@ struct Command {
     nb: u32,
 }
 
-#[derive(Clone)]
-struct Stacks {
-    crates: HashMap<u32, Vec<char>>,
-}
-
-impl Stacks {
-    fn new() -> Self {
-        Self {
-            crates: HashMap::new(),
-        }
-    }
-
-    fn move_item(mut self, command: &Command) -> Self {
-        println!("stacks before move {:#?}", self.crates);
-        for _ in 0..command.nb {
-            let item: char = self
-                .crates
-                .get_mut(&command.from)
-                .expect("from not found !")
-                .pop()
-                .expect("tried to move from an empty stack !");
-
-            self.crates
-                .get_mut(&command.to)
-                .expect("to not found !")
-                .push(item);
-        }
-
-        println!("stacks after move {:#?}", self.crates);
-
-        self
-    }
-}
-
-pub fn part_one(input: &str) -> Option<String> {
-    let mut stack_lines: Vec<String> = Vec::new();
-    let mut command_lines: Vec<String> = Vec::new();
-    input
-        .lines()
-        .map(|line| line.to_string())
-        .for_each(|line| match line {
-            line if line.contains("[") => stack_lines.push(line),
-            line if line.contains("move") => command_lines.push(line),
-            _ => (),
-        });
-
-    let initial_state =
-        stack_lines
-            .iter()
-            .rev()
-            .fold(Stacks::new(), |mut stacks, line| -> Stacks {
-                line.chars().enumerate().for_each(|(index, c)| {
-                    // -1 to skip first [ to ignore
-                    let pos_lookup = index as i32 % 4 - 1;
-                    let is_crate_pos = pos_lookup == 0;
-                    let stack_pos = index as i32 / 4;
-                    if is_crate_pos && c != ' ' {
-                        let mut current_stack: Vec<char> = stacks
-                            .crates
-                            .get(&(stack_pos as u32 + 1))
-                            .unwrap_or(&vec![])
-                            .to_vec();
-                        current_stack.push(c);
-                        stacks.crates.insert(stack_pos as u32 + 1, current_stack);
-                    }
-                });
-                stacks
-            });
-
+fn parse_commands(command_lines: Vec<String>) -> Vec<Command> {
     let reg = Regex::new(r"^move (\d+) from (\d+) to (\d+)$").unwrap();
-
-    let final_state = command_lines
+    command_lines
         .iter()
         .map(|command| -> Command {
-            println!("text command : {:?}", &command);
+            // println!("text command : {:?}", &command);
             let captures = reg
                 .captures(&command)
                 .expect("malformed command in input data");
 
-            println!("capture : {:?}", &captures);
+            // println!("capture : {:?}", &captures);
             return Command {
                 nb: captures
                     .get(1)
@@ -103,15 +34,114 @@ pub fn part_one(input: &str) -> Option<String> {
                     .expect("failed map to"),
             };
         })
-        .fold(initial_state, |current_state: Stacks, command| -> Stacks {
-            let new_stacks = current_state.clone();
-            new_stacks.move_item(&command)
-        });
+        .collect::<Vec<Command>>()
+}
 
+fn parse_stacks(stack_lines: Vec<String>) -> HashMap<u32, Vec<char>> {
+    stack_lines.iter().rev().fold(
+        HashMap::new(),
+        |mut stacks, line| -> HashMap<u32, Vec<char>> {
+            line.chars().enumerate().for_each(|(index, c)| {
+                // -1 to skip first [ to ignore
+                let pos_lookup = index as i32 % 4 - 1;
+                let is_crate_pos = pos_lookup == 0;
+                let stack_pos = index as i32 / 4;
+                if is_crate_pos && c != ' ' {
+                    let mut current_stack: Vec<char> = stacks
+                        .get(&(stack_pos as u32 + 1))
+                        .unwrap_or(&vec![])
+                        .to_vec();
+                    current_stack.push(c);
+                    stacks.insert(stack_pos as u32 + 1, current_stack);
+                }
+            });
+            stacks
+        },
+    )
+}
+
+#[derive(Clone)]
+struct Stacks {
+    crates: HashMap<u32, Vec<char>>,
+}
+
+impl Stacks {
+    fn new(crates: HashMap<u32, Vec<char>>) -> Self {
+        Self { crates }
+    }
+
+    // fn init(self, stack_lines: Vec<String>) -> Self {
+    //     stack_lines
+    //         .iter()
+    //         .rev()
+    //         .fold(self, |mut stacks, line| -> Self {
+    //             line.chars().enumerate().for_each(|(index, c)| {
+    //                 // -1 to skip first [ to ignore
+    //                 let pos_lookup = index as i32 % 4 - 1;
+    //                 let is_crate_pos = pos_lookup == 0;
+    //                 let stack_pos = index as i32 / 4;
+    //                 if is_crate_pos && c != ' ' {
+    //                     let mut current_stack: Vec<char> = stacks
+    //                         .crates
+    //                         .get(&(stack_pos as u32 + 1))
+    //                         .unwrap_or(&vec![])
+    //                         .to_vec();
+    //                     current_stack.push(c);
+    //                     stacks.crates.insert(stack_pos as u32 + 1, current_stack);
+    //                 }
+    //             });
+    //             stacks
+    //         })
+    // }
+
+    fn move_item(mut self, command: &Command) -> Self {
+        // println!("stacks before move {:#?}", self.crates);
+        for _ in 0..command.nb {
+            let item: char = self
+                .crates
+                .get_mut(&command.from)
+                .expect("from not found !")
+                .pop()
+                .expect("tried to move from an empty stack !");
+
+            self.crates
+                .get_mut(&command.to)
+                .expect("to not found !")
+                .push(item);
+        }
+
+        // println!("stacks after move {:#?}", self.crates);
+
+        self
+    }
+
+    fn move_items(mut self, command: &Command) -> Self {
+        println!("stacks before move {:#?}", self.crates);
+        // for _ in 0..command.nb {
+        let mut items: Vec<char> = self
+            .crates
+            .get_mut(&command.from)
+            .expect("from not found !")
+            .split_off(command.nb as usize);
+        // .expect("tried to move from an empty stack !");
+
+        self.crates
+            .get_mut(&command.to)
+            .expect("to not found !")
+            .append(&mut items);
+        // }
+
+        println!("stacks after move {:#?}", self.crates);
+
+        self
+    }
+}
+
+fn get_top_crates(stacks: &Stacks) -> String {
     let mut result = String::new();
 
-    for index in 1..=final_state.crates.len() {
-        let to_push = final_state
+    for index in 1..=stacks.crates.len() {
+        let to_push = stacks
             .crates
             .get(&(index as u32))
             .expect("index not found")
@@ -119,19 +149,65 @@ pub fn part_one(input: &str) -> Option<String> {
             .expect("last char not found");
         result.push(*to_push);
     }
-    println!("{} {:#?} ", result, final_state.crates);
+
+    result
+}
+
+fn split_lines(input: &str) -> (Vec<String>, Vec<String>) {
+    let mut stack_lines: Vec<String> = Vec::new();
+    let mut command_lines: Vec<String> = Vec::new();
+    input
+        .lines()
+        .map(|line| line.to_string())
+        .for_each(|line| match line {
+            line if line.contains("[") => stack_lines.push(line),
+            line if line.contains("move") => command_lines.push(line),
+            _ => (),
+        });
+
+    (stack_lines, command_lines)
+}
+
+pub fn part_one(input: &str) -> Option<String> {
+    let (stack_lines, command_lines) = split_lines(input);
+
+    let stacks = Stacks::new(parse_stacks(stack_lines));
+    let commands = parse_commands(command_lines);
+
+    let final_state = commands
+        .iter()
+        .fold(stacks, |current_state: Stacks, command| -> Stacks {
+            let new_stacks = current_state.clone();
+            new_stacks.move_item(&command)
+        });
+
+    let result = get_top_crates(&final_state);
 
     Some(result)
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<String> {
+    let (stack_lines, command_lines) = split_lines(input);
+
+    let stacks = Stacks::new(parse_stacks(stack_lines));
+    let commands = parse_commands(command_lines);
+
+    let final_state = commands
+        .iter()
+        .fold(stacks, |current_state: Stacks, command| -> Stacks {
+            let new_stacks = current_state.clone();
+            new_stacks.move_items(&command)
+        });
+
+    let result = get_top_crates(&final_state);
+
+    Some(result)
 }
 
 fn main() {
     let input = &advent_of_code::read_file("inputs", 5);
     advent_of_code::solve!(1, part_one, input);
-    advent_of_code::solve!(2, part_two, input);
+    // advent_of_code::solve!(2, part_two, input);
 }
 
 #[cfg(test)]
@@ -147,6 +223,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 5);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some("MCD".to_string()));
     }
 }
