@@ -116,22 +116,31 @@ impl Stacks {
     }
 
     fn move_items(mut self, command: &Command) -> Self {
-        println!("stacks before move {:#?}", self.crates);
-        // for _ in 0..command.nb {
+        // println!(
+        //     "command {:?}, stacks before move {:#?}",
+        //     &command, &self.crates
+        // );
+        let final_len = &self
+            .crates
+            .get(&command.from)
+            .expect("from not found !")
+            .len()
+            - command.nb as usize;
         let mut items: Vec<char> = self
             .crates
             .get_mut(&command.from)
             .expect("from not found !")
-            .split_off(command.nb as usize);
-        // .expect("tried to move from an empty stack !");
+            .split_off(final_len);
 
         self.crates
             .get_mut(&command.to)
             .expect("to not found !")
             .append(&mut items);
-        // }
 
-        println!("stacks after move {:#?}", self.crates);
+        // println!(
+        //     "command {:?}, stacks after move {:#?}",
+        //     &command, &self.crates
+        // );
 
         self
     }
@@ -207,7 +216,7 @@ pub fn part_two(input: &str) -> Option<String> {
 fn main() {
     let input = &advent_of_code::read_file("inputs", 5);
     advent_of_code::solve!(1, part_one, input);
-    // advent_of_code::solve!(2, part_two, input);
+    advent_of_code::solve!(2, part_two, input);
 }
 
 #[cfg(test)]
