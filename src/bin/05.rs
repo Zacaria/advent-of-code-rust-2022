@@ -8,26 +8,37 @@ struct Command {
     nb: u32,
 }
 
-trait Stacks {
-    fn move_item(&mut self, command: &Command);
+#[derive(Clone)]
+struct Stacks {
+    crates: HashMap<u32, Vec<char>>,
 }
 
-impl Stacks for HashMap<u32, Vec<char>> {
-    fn move_item(&mut self, command: &Command) {
-        println!("stacks before move {:#?}", self);
+impl Stacks {
+    fn new() -> Self {
+        Self {
+            crates: HashMap::new(),
+        }
+    }
+
+    fn move_item(mut self, command: &Command) -> Self {
+        println!("stacks before move {:#?}", self.crates);
         for _ in 0..command.nb {
             let item: char = self
+                .crates
                 .get_mut(&command.from)
                 .expect("from not found !")
                 .pop()
                 .expect("tried to move from an empty stack !");
 
-            self.get_mut(&command.to)
+            self.crates
+                .get_mut(&command.to)
                 .expect("to not found !")
                 .push(item);
         }
 
-        println!("stacks after move {:#?}", self);
+        println!("stacks after move {:#?}", self.crates);
+
+        self
     }
 }
 
@@ -43,26 +54,28 @@ pub fn part_one(input: &str) -> Option<String> {
             _ => (),
         });
 
-    let initial_state = stack_lines.iter().rev().fold(
-        HashMap::new(),
-        |mut stacks, line| -> HashMap<u32, Vec<char>> {
-            line.chars().enumerate().for_each(|(index, c)| {
-                // -1 to skip first [ to ignore
-                let pos_lookup = index as i32 % 4 - 1;
-                let is_crate_pos = pos_lookup == 0;
-                let stack_pos = index as i32 / 4;
-                if is_crate_pos && c != ' ' {
-                    let mut current_stack: Vec<char> = stacks
-                        .get(&(stack_pos as u32 + 1))
-                        .unwrap_or(&vec![])
-                        .to_vec();
-                    current_stack.push(c);
-                    stacks.insert(stack_pos as u32 + 1, current_stack);
-                }
+    let initial_state =
+        stack_lines
+            .iter()
+            .rev()
+            .fold(Stacks::new(), |mut stacks, line| -> Stacks {
+                line.chars().enumerate().for_each(|(index, c)| {
+                    // -1 to skip first [ to ignore
+                    let pos_lookup = index as i32 % 4 - 1;
+                    let is_crate_pos = pos_lookup == 0;
+                    let stack_pos = index as i32 / 4;
+                    if is_crate_pos && c != ' ' {
+                        let mut current_stack: Vec<char> = stacks
+                            .crates
+                            .get(&(stack_pos as u32 + 1))
+                            .unwrap_or(&vec![])
+                            .to_vec();
+                        current_stack.push(c);
+                        stacks.crates.insert(stack_pos as u32 + 1, current_stack);
+                    }
+                });
+                stacks
             });
-            stacks
-        },
-    );
 
     let reg = Regex::new(r"^move (\d+) from (\d+) to (\d+)$").unwrap();
 
@@ -90,26 +103,23 @@ pub fn part_one(input: &str) -> Option<String> {
                     .expect("failed map to"),
             };
         })
-        .fold(
-            initial_state,
-            |current_state: HashMap<u32, Vec<char>>, command| -> HashMap<u32, Vec<char>> {
-                let mut new_stacks = current_state.clone();
-                new_stacks.move_item(&command);
-                new_stacks
-            },
-        );
+        .fold(initial_state, |current_state: Stacks, command| -> Stacks {
+            let new_stacks = current_state.clone();
+            new_stacks.move_item(&command)
+        });
 
     let mut result = String::new();
 
-    for index in 1..=final_state.len() {
+    for index in 1..=final_state.crates.len() {
         let to_push = final_state
+            .crates
             .get(&(index as u32))
             .expect("index not found")
             .last()
             .expect("last char not found");
         result.push(*to_push);
     }
-    println!("{} {:#?} ", result, final_state);
+    println!("{} {:#?} ", result, final_state.crates);
 
     Some(result)
 }
