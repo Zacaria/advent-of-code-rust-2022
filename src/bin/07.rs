@@ -88,20 +88,12 @@ fn commands(input: &str) -> IResult<&str, Vec<Operation>> {
 }
 
 #[derive(Debug)]
-enum FileSystem<'a> {
-    File { size: u32, name: &'a str },
-    Dir(&'a str),
-}
-
-#[derive(Debug)]
 struct File<'a> {
     size: u32,
     name: &'a str,
 }
 
-pub fn part_one(input: &str) -> Option<u32> {
-    let cmds = commands(input).unwrap().1;
-
+fn build_directories(cmds: Vec<Operation>) -> BTreeMap<String, Vec<File>> {
     let mut directories: BTreeMap<String, Vec<File>> = BTreeMap::new();
     let mut context: Vec<&str> = vec![];
     for command in cmds.iter() {
@@ -131,47 +123,44 @@ pub fn part_one(input: &str) -> Option<u32> {
             }
         }
     }
-    dbg!(&directories);
+    return directories;
+}
 
-    let folder_sizes: BTreeMap<String, u32> =
-        directories
-            .iter()
-            .fold(BTreeMap::new(), |mut acc, (path, files)| {
-                acc.entry(path.to_string()).or_insert(0);
-                acc.entry(path.to_string()).and_modify(|size| {
-                    *size = *size + files.iter().map(|&File { size, .. }| size).sum::<u32>();
-                });
-                acc
-            });
+fn get_directories_sizes(directories: &BTreeMap<String, Vec<File>>) -> BTreeMap<String, u32> {
+    let mut folder_sizes: BTreeMap<String, u32> = BTreeMap::new();
+    for (path, _) in directories {
+        folder_sizes.entry(path.to_string()).or_insert(0);
 
-    let mut duplicated_folder_sizes: BTreeMap<String, u32> = BTreeMap::new();
-    for (path, _) in &folder_sizes {
-        duplicated_folder_sizes.entry(path.to_string()).or_insert(0);
-
-        duplicated_folder_sizes
+        folder_sizes
             .entry(path.to_string())
             .and_modify(|current_size| {
                 // dbg!(&path, &current_size);
-                *current_size += folder_sizes.iter().fold(0, |sum, (key, size)| {
+                *current_size += directories.iter().fold(0, |sum, (key, files)| {
                     if key.starts_with(path) {
+                        let size = files.iter().fold(0, |sum, &File { size, .. }| sum + size);
                         sum + size
                     } else {
                         sum
                     }
                 });
-
-                // .filter(|(key, _)| key.starts_with(path))
-                // .map(|(_, size)| size)
-                // .sum::<u32>();
             });
     }
 
-    let result = duplicated_folder_sizes
+    folder_sizes
+}
+
+pub fn part_one(input: &str) -> Option<u32> {
+    let cmds = commands(input).unwrap().1;
+
+    let directories: BTreeMap<String, Vec<File>> = build_directories(cmds);
+    // dbg!(&directories);
+
+    let folder_sizes: BTreeMap<String, u32> = get_directories_sizes(&directories);
+
+    let result = folder_sizes
         .iter()
         .filter(|(_, &size)| size <= 100000 as u32)
         .fold(0 as u32, |sum, (_, size)| sum + size);
-    // .map(|(_, size)| size)
-    // .sum::<u32>();
 
     // dbg!(folder_sizes, &duplicated_folder_sizes);
     Some(result)
