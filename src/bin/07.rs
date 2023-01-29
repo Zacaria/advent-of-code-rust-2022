@@ -90,6 +90,7 @@ fn commands(input: &str) -> IResult<&str, Vec<Operation>> {
 #[derive(Debug)]
 struct File<'a> {
     size: u32,
+    #[allow(dead_code)]
     name: &'a str,
 }
 
@@ -129,21 +130,16 @@ fn build_directories(cmds: Vec<Operation>) -> BTreeMap<String, Vec<File>> {
 fn get_directories_sizes(directories: &BTreeMap<String, Vec<File>>) -> BTreeMap<String, u32> {
     let mut folder_sizes: BTreeMap<String, u32> = BTreeMap::new();
     for (path, _) in directories {
-        folder_sizes.entry(path.to_string()).or_insert(0);
+        let dir_size = directories.iter().fold(0, |sum, (key, files)| {
+            if key.starts_with(path) {
+                let size = files.iter().fold(0, |sum, &File { size, .. }| sum + size);
+                sum + size
+            } else {
+                sum
+            }
+        });
 
-        folder_sizes
-            .entry(path.to_string())
-            .and_modify(|current_size| {
-                // dbg!(&path, &current_size);
-                *current_size += directories.iter().fold(0, |sum, (key, files)| {
-                    if key.starts_with(path) {
-                        let size = files.iter().fold(0, |sum, &File { size, .. }| sum + size);
-                        sum + size
-                    } else {
-                        sum
-                    }
-                });
-            });
+        folder_sizes.insert(path.to_string(), dir_size);
     }
 
     folder_sizes
