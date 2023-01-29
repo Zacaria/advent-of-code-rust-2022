@@ -167,7 +167,22 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let cmds = commands(input).unwrap().1;
+    let directories: BTreeMap<String, Vec<File>> = build_directories(cmds);
+    let folder_sizes: BTreeMap<String, u32> = get_directories_sizes(&directories);
+
+    // dbg!(&folder_sizes);
+
+    let used_space = folder_sizes.get("").expect("no root folder");
+    let free_space = 70000000 as u32 - used_space;
+
+    let result = folder_sizes
+        .iter()
+        .filter(|(_name, &size)| size + free_space >= 30000000 as u32)
+        .map(|(_, size)| *size)
+        .min();
+
+    result
 }
 
 fn main() {
@@ -190,6 +205,6 @@ mod tests {
     #[ignore]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 7);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(24933642));
     }
 }
