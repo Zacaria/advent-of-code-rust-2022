@@ -1,7 +1,6 @@
 #[derive(Debug)]
 struct Tree {
     height: i32,
-    seen: bool,
     visible: bool,
 }
 
@@ -12,57 +11,60 @@ enum Side {
     Left,
 }
 
-fn is_visible(trees_facing: Vec<i32>, tree: &i32) -> bool {
-    if let Some(higher_facing) = trees_facing.iter().max() {
-        return higher_facing < tree;
-    } else {
-        true
-    }
-}
+fn count_visible_trees(grid: &mut Vec<Vec<Tree>>) -> i32 {
+    let line_len = grid.len();
+    let col_len = grid[0].len();
 
-fn get_trees_facing(forest: Vec<u32>, side: Side) -> Vec<u32> {
-    forest
-}
-
-fn count_visible_trees(grid: &Vec<Vec<Tree>>) -> i32 {
-    let mut count = 0;
-    for i in 0..grid.len() {
-        for j in 0..grid[0].len() {
-            let curr = &grid[i][j];
-            if curr.visible {
-                continue;
-            }
-
-            if i == 0 || i == grid.len() - 1 || j == 0 || j == grid[0].len() - 1 {
-                count += 1;
-                // curr.visible = true;
-                continue;
-            }
-
-            let mut is_visible = true;
-            for k in 0..grid.len() {
-                if grid[k][j].height > curr.height {
-                    is_visible = false;
-                    break;
-                }
-            }
-
-            if is_visible {
-                for k in 0..grid[0].len() {
-                    if grid[i][k].height > curr.height {
-                        is_visible = false;
-                        break;
-                    }
-                }
-            }
-
-            if is_visible {
-                count += 1;
-                // curr.visible = true;
+    for y in 0..line_len {
+        let mut current_higher_tree = 0;
+        for x in 0..col_len {
+            if x == 0 {
+                current_higher_tree = grid[y][x].height;
+                grid[y][x].visible = true;
+            } else if current_higher_tree < grid[y][x].height {
+                current_higher_tree = grid[y][x].height;
+                grid[y][x].visible = true;
             }
         }
     }
-    count + 
+    for y in (0..line_len).rev() {
+        let mut current_higher_tree = 0;
+        for x in (0..col_len).rev() {
+            if x == line_len - 1 {
+                current_higher_tree = grid[y][x].height;
+                grid[y][x].visible = true;
+            } else if current_higher_tree < grid[y][x].height {
+                current_higher_tree = grid[y][x].height;
+                grid[y][x].visible = true;
+            }
+        }
+    }
+
+    for x in 0..line_len {
+        let mut current_higher_tree = 0;
+        for y in 0..col_len {
+            if y == 0 {
+                current_higher_tree = grid[y][x].height;
+                grid[y][x].visible = true;
+            } else if current_higher_tree < grid[y][x].height {
+                current_higher_tree = grid[y][x].height;
+                grid[y][x].visible = true;
+            }
+        }
+    }
+    for x in (0..line_len).rev() {
+        let mut current_higher_tree = 0;
+        for y in (0..col_len).rev() {
+            if y == line_len - 1 {
+                current_higher_tree = grid[y][x].height;
+                grid[y][x].visible = true;
+            } else if current_higher_tree < grid[y][x].height {
+                current_higher_tree = grid[y][x].height;
+                grid[y][x].visible = true;
+            }
+        }
+    }
+    grid.iter().flatten().filter(|tree| tree.visible).count() as i32
 }
 
 fn parse_grid(input: &str) -> Vec<Vec<Tree>> {
@@ -73,7 +75,7 @@ fn parse_grid(input: &str) -> Vec<Vec<Tree>> {
                 .map(|c| c.to_digit(10).expect("could not go to digit") as i32)
                 .map(|t| Tree {
                     height: t,
-                    seen: false,
+                    // seen: false,
                     visible: false,
                 })
                 .collect()
@@ -82,9 +84,9 @@ fn parse_grid(input: &str) -> Vec<Vec<Tree>> {
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let grid: Vec<Vec<Tree>> = parse_grid(input);
+    let mut grid: Vec<Vec<Tree>> = parse_grid(input);
 
-    let result = count_visible_trees(&grid);
+    let result = count_visible_trees(&mut grid);
     dbg!(&result);
 
     Some(result as u32)
