@@ -4,13 +4,6 @@ struct Tree {
     visible: bool,
 }
 
-enum Side {
-    Top,
-    Down,
-    Right,
-    Left,
-}
-
 fn count_visible_trees(grid: &mut Vec<Vec<Tree>>) -> i32 {
     let line_len = grid.len();
     let col_len = grid[0].len();
@@ -67,6 +60,61 @@ fn count_visible_trees(grid: &mut Vec<Vec<Tree>>) -> i32 {
     grid.iter().flatten().filter(|tree| tree.visible).count() as i32
 }
 
+fn find_highest_scenic_score(grid: &mut Vec<Vec<Tree>>) -> i32 {
+    let line_len = grid.len();
+    let col_len = grid[0].len();
+
+    let mut high_score = 0;
+
+    for y in 0..line_len {
+        for x in 0..col_len {
+            let mut scores = [0, 0, 0, 0];
+
+            for j in (0..x).rev() {
+                if grid[y][j].height < grid[y][x].height {
+                    scores[0] += 1;
+                } else {
+                    scores[0] += 1;
+                    break;
+                }
+            }
+            for j in (0..y).rev() {
+                if grid[j][x].height < grid[y][x].height {
+                    scores[1] += 1;
+                } else {
+                    scores[1] += 1;
+                    break;
+                }
+            }
+
+            for j in (x + 1)..col_len {
+                if grid[y][j].height < grid[y][x].height {
+                    scores[2] += 1;
+                } else {
+                    scores[2] += 1;
+                    break;
+                }
+            }
+
+            for j in (y + 1)..line_len {
+                if grid[j][x].height < grid[y][x].height {
+                    scores[3] += 1;
+                } else {
+                    scores[3] += 1;
+                    break;
+                }
+            }
+
+            let scenic_score = scores.iter().product();
+
+            if scenic_score > high_score {
+                high_score = scenic_score;
+            }
+        }
+    }
+    high_score
+}
+
 fn parse_grid(input: &str) -> Vec<Vec<Tree>> {
     input
         .lines()
@@ -93,7 +141,11 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let mut grid: Vec<Vec<Tree>> = parse_grid(input);
+
+    let result = find_highest_scenic_score(&mut grid);
+
+    Some(result as u32)
 }
 
 fn main() {
@@ -115,6 +167,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 8);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(8));
     }
 }
