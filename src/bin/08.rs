@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use itertools::Itertools;
+
+#[derive(Debug, Clone, Copy)]
 struct Tree {
     height: i32,
     visible: bool,
@@ -60,59 +62,43 @@ fn count_visible_trees(grid: &mut Vec<Vec<Tree>>) -> i32 {
     grid.iter().flatten().filter(|tree| tree.visible).count() as i32
 }
 
+fn directions(grid: &Vec<Vec<Tree>>, x: usize, y: usize) -> [Vec<Tree>; 4] {
+    let row = grid[y].clone();
+    let column = grid.iter().map(|row| row[x]).collect::<Vec<Tree>>();
+
+    let (up, down) = column.split_at(y);
+    let (left, right) = row.split_at(x);
+
+    let up = up.iter().cloned().rev().collect();
+    let down = down[1..].to_vec();
+    let left = left.iter().cloned().rev().collect();
+    let right = right[1..].to_vec();
+
+    [up, down, right, left]
+}
+
 fn find_highest_scenic_score(grid: &mut Vec<Vec<Tree>>) -> i32 {
     let line_len = grid.len();
     let col_len = grid[0].len();
 
-    let mut high_score = 0;
+    (0..line_len)
+        .cartesian_product(0..col_len)
+        .map(|(x, y)| -> usize {
+            let height = grid[y][x].height;
 
-    for y in 0..line_len {
-        for x in 0..col_len {
-            let mut scores = [0, 0, 0, 0];
-
-            for j in (0..x).rev() {
-                if grid[y][j].height < grid[y][x].height {
-                    scores[0] += 1;
-                } else {
-                    scores[0] += 1;
-                    break;
-                }
-            }
-            for j in (0..y).rev() {
-                if grid[j][x].height < grid[y][x].height {
-                    scores[1] += 1;
-                } else {
-                    scores[1] += 1;
-                    break;
-                }
-            }
-
-            for j in (x + 1)..col_len {
-                if grid[y][j].height < grid[y][x].height {
-                    scores[2] += 1;
-                } else {
-                    scores[2] += 1;
-                    break;
-                }
-            }
-
-            for j in (y + 1)..line_len {
-                if grid[j][x].height < grid[y][x].height {
-                    scores[3] += 1;
-                } else {
-                    scores[3] += 1;
-                    break;
-                }
-            }
-
-            let scenic_score = scores.iter().product();
-
-            if scenic_score > high_score {
-                high_score = scenic_score;
-            }
-        }
-    }
-    high_score
+            directions(&grid, x, y)
+                .map(|direction| {
+                    direction
+                        .iter()
+                        .position(|tree| tree.height >= height)
+                        .map(|position| position + 1)
+                        .unwrap_or_else(|| direction.len())
+                })
+                .into_iter()
+                .product::<usize>()
+        })
+        .max()
+        .unwrap() as i32
 }
 
 fn parse_grid(input: &str) -> Vec<Vec<Tree>> {
@@ -123,7 +109,6 @@ fn parse_grid(input: &str) -> Vec<Vec<Tree>> {
                 .map(|c| c.to_digit(10).expect("could not go to digit") as i32)
                 .map(|t| Tree {
                     height: t,
-                    // seen: false,
                     visible: false,
                 })
                 .collect()
