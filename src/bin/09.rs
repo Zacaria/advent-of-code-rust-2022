@@ -54,47 +54,24 @@ impl Grid {
             .expect("T not found");
         let (h_x, h_y) = h_pos;
 
-        let (mut new_x, mut new_y) = match direction {
-            Direction::Up => (h_x, h_y + 1),
-            Direction::Right => (h_x - 1, h_y),
-            Direction::Down => (h_x, h_y - 1),
-            Direction::Left => (h_x + 1, h_y),
-            Direction::Unknown => {
-                println!("====== ERROR =====");
-                (t_x, t_y)
-            }
-        };
+        let (mut new_x, mut new_y) = (t_x, t_y);
 
-        // if (h_x - 1 == t_x && h_y - 1 == t_y)
-        //     || (h_x + 1 == t_x && h_y - 1 == t_y)
-        //     || (h_x + 1 == t_x && h_y + 1 == t_y)
-        //     || (h_x - 1 == t_x && h_y + 1 == t_y)
-        // {
-        //     (new_x, new_y) = (t_x, t_y);
-        // }
-
-        if ((t_y == h_y + 1 || t_y == h_y || t_y == h_y - 1)
-            && (t_x == h_x - 1 || t_x == h_x + 1 || t_x == h_x))
-            || ((t_x == h_x + 1 || t_x == h_x - 1 || t_x == h_x)
-                && (t_y == h_y - 1 || t_y == h_y + 1 || t_y == h_y))
+        if ((t_y != h_y + 1 && t_y != h_y && t_y != h_y - 1)
+            || (t_x != h_x - 1 && t_x != h_x + 1 && t_x != h_x))
+            && ((t_x != h_x + 1 && t_x != h_x - 1 && t_x != h_x)
+                || (t_y != h_y - 1 && t_y != h_y + 1 && t_y != h_y))
         {
-            (new_x, new_y) = (t_x, t_y);
+            (new_x, new_y) = match direction {
+                Direction::Up => (h_x, h_y + 1),
+                Direction::Right => (h_x - 1, h_y),
+                Direction::Down => (h_x, h_y - 1),
+                Direction::Left => (h_x + 1, h_y),
+                Direction::Unknown => {
+                    println!("====== ERROR =====");
+                    (t_x, t_y)
+                }
+            }
         }
-
-        // let new_x = if h_x > t_x && h_x - t_x > 1 {
-        //     t_x + 1
-        // } else if h_x < t_x && t_x - h_x > 1 {
-        //     t_x - 1
-        // } else {
-        //     t_x
-        // };
-        // let new_y = if h_y > t_y && h_y - t_y > 1 {
-        //     t_y + 1
-        // } else if h_y < t_y && t_y - h_y > 1 {
-        //     t_y - 1
-        // } else {
-        //     t_y
-        // };
 
         self.move_to((t_x, t_y), (new_x, new_y));
         // todo!()
