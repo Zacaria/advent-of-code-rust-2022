@@ -10,11 +10,11 @@ use nom::{
 };
 
 type MonkeyIndex = u32;
-type ItemWorryLevel = u32;
+type ItemWorryLevel = u128;
 
 #[derive(Clone, Debug)]
 struct Test {
-    divisible: u32,
+    divisible: ItemWorryLevel,
     true_recipient: MonkeyIndex,
     false_recipient: MonkeyIndex,
 }
@@ -25,7 +25,7 @@ struct Monkey {
     items: VecDeque<ItemWorryLevel>,
     operation: Operation,
     throw_divisor: Test,
-    inspections: u32,
+    inspections: u128,
 }
 
 #[derive(Clone, Debug)]
@@ -53,7 +53,7 @@ impl Operation {
             Operation::Add((a, b), s) => (s, b, a.number(old) + b.number(old)),
             Operation::Multiply((a, b), s) => (s, b, a.number(old) * b.number(old)),
         };
-        println!("{} {} to {}", s, b.number(old), result);
+        // println!("{} {} to {}", s, b.number(old), result);
         result
     }
 }
@@ -61,27 +61,17 @@ impl Operation {
 impl Monkey {
     fn inspect_item(self: &mut Self) -> Option<ItemWorryLevel> {
         if self.items.len() == 0 {
-            println!("Monkey {} has no item to inspect", self.index);
+            // println!("Monkey {} has no item to inspect", self.index);
             return None;
         }
-        let mut item = self.items.pop_front().expect("pop_front failed");
-        println!(
-            "Monkey {} inspects an item with a worry level of === {} ===",
-            self.index, item
-        );
+        let item = self.items.pop_front().expect("pop_front failed");
+        // println!(
+        //     "Monkey {} inspects an item with a worry level of === {} ===",
+        //     self.index, item
+        // );
         self.inspections += 1;
 
-        let mut new = self.operation.apply(item);
-
-        // println!("{}", format!(&message, item));
-
-        // round
-        // new = (new as f64 / 3 as f64).round() as ItemWorryLevel;
-        new = new / 3;
-        println!(
-            "  Monkey gets bored with item. Worry level is divided by 3 to {}.",
-            new
-        );
+        let new = self.operation.apply(item);
 
         Some(new)
     }
@@ -98,7 +88,7 @@ impl Monkey {
 fn value(input: &str) -> IResult<&str, Value> {
     alt((
         tag("old").map(|_| Value::Old),
-        nom::character::complete::u32.map(|num| Value::Num(num)),
+        nom::character::complete::u128.map(|num| Value::Num(num)),
     ))(input)
 }
 
@@ -122,7 +112,7 @@ fn parse_test(input: &str) -> IResult<&str, Test> {
     let (input, (_, _, divisor)) = tuple((
         multispace1,
         tag("Test: divisible by "),
-        nom::character::complete::u32,
+        nom::character::complete::u128,
     ))(input)?;
     let (input, (_, _, true_recipient)) = tuple((
         multispace1,
@@ -164,14 +154,14 @@ fn parse_monkey(input: &str) -> IResult<&str, Monkey> {
 
     let (input, test) = parse_test(input)?;
 
-    let items: VecDeque<u32> = VecDeque::from(
+    let items: VecDeque<ItemWorryLevel> = VecDeque::from(
         items
             .iter()
-            .map(|i| i.parse::<u32>().expect("parse items error"))
-            .collect::<VecDeque<u32>>(),
+            .map(|i| i.parse::<ItemWorryLevel>().expect("parse items error"))
+            .collect::<VecDeque<ItemWorryLevel>>(),
     );
 
-    dbg!(input, index);
+    // dbg!(input, index);
     let monkey = Monkey {
         index,
         items,
@@ -188,7 +178,7 @@ fn parse_data(input: &str) -> IResult<&str, Vec<Monkey>> {
     Ok((input, monkeys))
 }
 
-fn get_score(monkeys: Vec<Monkey>) -> u32 {
+fn get_score(monkeys: Vec<Monkey>) -> u128 {
     let mut vec = monkeys.clone();
 
     vec.sort_unstable_by(|monkey1, monkey2| monkey2.inspections.cmp(&monkey1.inspections));
@@ -196,7 +186,7 @@ fn get_score(monkeys: Vec<Monkey>) -> u32 {
     vec[0].inspections * vec[1].inspections
 }
 
-pub fn part_one(input: &str) -> Option<u32> {
+pub fn part_one(input: &str) -> Option<u128> {
     let number_turns = 20;
 
     let mut monkeys = parse_data(input).unwrap().1;
@@ -207,12 +197,17 @@ pub fn part_one(input: &str) -> Option<u32> {
         println!("========== Turn {} ==========", turn);
         for monkey_index in 0..monkeys.len() {
             while let Some(item) = monkeys[monkey_index].inspect_item() {
-                let receiver_index = monkeys[monkey_index].decide_throw(&item);
-                monkeys[receiver_index as usize].items.push_back(item);
-                println!(
-                    "  Item with worry level {} is thrown to monkey {}",
-                    item, receiver_index
-                );
+                let new = item / 3;
+                // println!(
+                //     "  Monkey gets bored with item. Worry level is divided by 3 to {}.",
+                //     new
+                // );
+                let receiver_index = monkeys[monkey_index].decide_throw(&new);
+                monkeys[receiver_index as usize].items.push_back(new);
+                // println!(
+                //     "  Item with worry level {} is thrown to monkey {}",
+                //     item, receiver_index
+                // );
             }
         }
     }
@@ -222,8 +217,41 @@ pub fn part_one(input: &str) -> Option<u32> {
     Some(get_score(monkeys))
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<u128> {
+    let number_turns = 10000;
+
+    let mut monkeys = parse_data(input).unwrap().1;
+
+    let common_multiple: u128 = monkeys
+        .iter()
+        .map(|monkey| monkey.throw_divisor.divisible)
+        .product::<u128>();
+
+    // dbg!("+============", common_multiple);
+
+    for turn in 0..number_turns {
+        println!("========== Turn {} ==========", turn);
+        for monkey_index in 0..monkeys.len() {
+            while let Some(item) = monkeys[monkey_index].inspect_item() {
+                // let new = item / 3;
+                // println!(
+                //     "  Monkey gets bored with item. Worry level is divided by 3 to {}.",
+                //     new
+                // );
+                let new = item % common_multiple;
+                let receiver_index = monkeys[monkey_index].decide_throw(&new);
+                monkeys[receiver_index as usize].items.push_back(new);
+                // println!(
+                //     "  Item with worry level {} is thrown to monkey {}",
+                //     item, receiver_index
+                // );
+            }
+        }
+    }
+
+    dbg!(&monkeys);
+
+    Some(get_score(monkeys))
 }
 
 fn main() {
@@ -245,6 +273,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 11);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(2713310158));
     }
 }
