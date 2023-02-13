@@ -30,14 +30,23 @@ fn check_height(curr: &Cell, test: &Cell) -> bool {
 }
 
 impl Grid {
-    fn successors(&self, current: &Cell) -> Vec<(Pos, u32)> {
+    fn successors(&mut self, current: &Cell) -> Vec<(Pos, u32)> {
+        let mut successors = vec![];
         let &Pos(x, y) = &current.pos;
         let index = x as i32 + y as i32 * self.width;
-        let up_cell = if (index - self.width as i32) >= 0 {
-            self.cells.get((index - self.width as i32) as usize)
+        let mut up_cell = if (index - self.width as i32) >= 0 {
+            self.cells.get_mut((index - self.width as i32) as usize)
         } else {
             None
         };
+        match up_cell {
+            Some(ref mut cell) if y as i32 - 1 >= 0 && check_height(&cell, &current) => {
+                successors.push((cell.pos.clone(), 1));
+                cell.visited = true;
+            }
+            _ => (),
+        }
+
         let right_cell = self.cells.get((index + 1) as usize);
         let down_cell = self.cells.get((index + self.width as i32) as usize);
         let left_cell = if (index - 1) >= 0 {
@@ -46,13 +55,7 @@ impl Grid {
             None
         };
 
-        let mut successors = vec![];
-        match up_cell {
-            Some(cell) if y as i32 - 1 >= 0 && check_height(&cell, &current) => {
-                successors.push((cell.pos.clone(), 1));
-            }
-            _ => (),
-        }
+    
 
         match right_cell {
             Some(cell) if ((x + 1) as i32) < self.width && check_height(&cell, &current) => {
