@@ -1,5 +1,6 @@
 extern crate pathfinding;
-use std::hash::Hash;
+use colored::{ColoredString, Colorize};
+use std::{fmt::Display, hash::Hash};
 
 use pathfinding::prelude::astar;
 
@@ -23,60 +24,127 @@ struct Grid {
     height: i32,
     width: i32,
     cells: Vec<Cell>,
+    goal_index: i32,
+    start_index: i32,
 }
 
-fn check_height(curr: &Cell, test: &Cell) -> bool {
-    ((test.height as i16 - curr.height as i16) as i16).abs() < 2
+fn convert_to_char(num: u8) -> char {
+    let base = 'a' as u8;
+    let result = base + num;
+    result as char
+}
+
+impl Display for Grid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut grid_str = String::from("");
+        for (i, cell) in (&self.cells).iter().enumerate() {
+            if i as i32 % self.width == 0 {
+                grid_str += "\n";
+            }
+
+            if i == self.goal_index as usize {
+                grid_str += &"E".green().to_string();
+                continue;
+            }
+
+            if i == self.start_index as usize {
+                grid_str += &"S".red().to_string();
+                continue;
+            }
+
+            if cell.visited {
+                grid_str += &format!("{}", convert_to_char(cell.height))
+                    .yellow()
+                    .to_string();
+            }
+
+            if !cell.visited {
+                grid_str += &format!("{}", convert_to_char(cell.height))
+                    .blue()
+                    .to_string();
+            }
+        }
+
+        writeln!(f, "{}", grid_str)?;
+
+        Ok(())
+    }
+}
+
+fn is_climbable(test: &Cell, curr: &Cell) -> bool {
+    ((test.height as i16 - curr.height as i16) as i16) <= 1
 }
 
 impl Grid {
-    fn successors(&mut self, current: &Cell) -> Vec<(Pos, u32)> {
+    fn successors(&mut self, current_pos: &Pos) -> Vec<(Pos, u32)> {
+        let Pos(x, y) = current_pos;
+
+        let curr_i = *x as i32 + *y as i32 * self.width;
+
+        let current = &self
+            .cells
+            .get_mut((x + y * self.width as u32) as usize)
+            .expect("cell not found")
+            .clone();
         let mut successors = vec![];
-        let &Pos(x, y) = &current.pos;
-        let index = x as i32 + y as i32 * self.width;
-        let mut up_cell = if (index - self.width as i32) >= 0 {
-            self.cells.get_mut((index - self.width as i32) as usize)
+
+        let mut up_cell = if *y as i32 - 1 >= 0 {
+            self.cells.get_mut((curr_i - self.width as i32) as usize)
         } else {
             None
         };
         match up_cell {
-            Some(ref mut cell) if y as i32 - 1 >= 0 && check_height(&cell, &current) => {
+            Some(ref mut cell) if is_climbable(&cell, &current) => {
+                // Some(ref mut cell) if !cell.visited && is_climbable(&cell, &current) => {
                 successors.push((cell.pos.clone(), 1));
                 cell.visited = true;
             }
             _ => (),
         }
 
-        let right_cell = self.cells.get((index + 1) as usize);
-        let down_cell = self.cells.get((index + self.width as i32) as usize);
-        let left_cell = if (index - 1) >= 0 {
-            self.cells.get((index - 1) as usize)
+        let mut right_cell = if ((x + 1) as i32) < self.width {
+            self.cells.get_mut((curr_i + 1) as usize)
+        } else {
+            None
+        };
+        match right_cell {
+            Some(ref mut cell) if is_climbable(&cell, &current) => {
+                // Some(ref mut cell) if !cell.visited && is_climbable(&cell, &current) => {
+                successors.push((cell.pos.clone(), 1));
+                cell.visited = true;
+            }
+            _ => (),
+        }
+        let mut down_cell = if ((y + 1) as i32) < self.height {
+            self.cells.get_mut((curr_i + self.width as i32) as usize)
         } else {
             None
         };
 
-    
-
-        match right_cell {
-            Some(cell) if ((x + 1) as i32) < self.width && check_height(&cell, &current) => {
-                successors.push((cell.pos.clone(), 1));
-            }
-            _ => (),
-        }
-
         match down_cell {
-            Some(cell) if ((y + 1) as i32) < self.height && check_height(&cell, &current) => {
+            Some(ref mut cell) if is_climbable(&cell, &current) => {
+                // Some(ref mut cell) if !cell.visited && is_climbable(&cell, &current) => {
                 successors.push((cell.pos.clone(), 1));
+                cell.visited = true;
             }
             _ => (),
         }
+
+        let mut left_cell = if *x as i32 - 1 >= 0 {
+            self.cells.get_mut((curr_i - 1) as usize)
+        } else {
+            None
+        };
 
         match left_cell {
-            Some(cell) if x as i32 - 1 >= 0 && check_height(&cell, &current) => {
+            Some(ref mut cell) if !cell.visited && is_climbable(&cell, &current) => {
                 successors.push((cell.pos.clone(), 1));
+                cell.visited = true;
             }
             _ => (),
         }
+
+        // println!("{}", &self);
 
         successors
     }
@@ -97,7 +165,7 @@ fn parse_grid(input: &str) -> (Grid, Pos, Pos) {
     let end_index = join_input.find("E").expect("E not found !") as u32;
     let end_pos = Pos(end_index % grid_width as u32, end_index / grid_width as u32);
 
-    let cells: Vec<Cell> = join_input
+    let mut cells: Vec<Cell> = join_input
         .bytes()
         .map(|b| -> u8 {
             if b == b'S' {
@@ -118,11 +186,15 @@ fn parse_grid(input: &str) -> (Grid, Pos, Pos) {
         })
         .collect();
 
+    cells[start_index as usize].visited = true;
+
     (
         Grid {
             cells,
             height: grid_height,
             width: grid_width,
+            goal_index: end_index as i32,
+            start_index: start_index as i32,
         },
         start_pos,
         end_pos,
@@ -130,19 +202,11 @@ fn parse_grid(input: &str) -> (Grid, Pos, Pos) {
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    // let size = 8;
-
-    let (grid, start, end) = parse_grid(input);
+    let (mut grid, start, end) = parse_grid(input);
+    println!("{}", &grid);
     let result = astar(
         &start,
-        |Pos(x, y)| {
-            grid.successors(
-                &grid
-                    .cells
-                    .get((x + y * grid.width as u32) as usize)
-                    .expect("cell not found"),
-            )
-        },
+        |p| grid.successors(p),
         |p| p.distance(&end) / 3,
         |p| *p == end,
     );
