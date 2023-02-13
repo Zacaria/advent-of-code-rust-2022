@@ -20,6 +20,7 @@ struct Cell {
     height: u8,
 }
 
+#[derive(Clone)]
 struct Grid {
     height: i32,
     width: i32,
@@ -144,8 +145,6 @@ impl Grid {
             _ => (),
         }
 
-        // println!("{}", &self);
-
         successors
     }
 }
@@ -203,7 +202,6 @@ fn parse_grid(input: &str) -> (Grid, Pos, Pos) {
 
 pub fn part_one(input: &str) -> Option<u32> {
     let (mut grid, start, end) = parse_grid(input);
-    println!("{}", &grid);
     let result = astar(
         &start,
         |p| grid.successors(p),
@@ -214,7 +212,26 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let (grid, _, end) = parse_grid(input);
+
+    let mut min_len = 99999;
+
+    for start in grid.cells.clone().iter().filter(|c| c.height == 0) {
+        let mut this_grid = grid.clone();
+        let result = astar(
+            &start.pos,
+            |p| this_grid.successors(p),
+            |p| p.distance(&end) / 10,
+            |p| *p == end,
+        );
+
+        min_len = match result {
+            Some((res, l)) if l < min_len => l,
+            _ => min_len,
+        }
+    }
+
+    Some(min_len)
 }
 
 fn main() {
@@ -236,6 +253,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 12);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(29));
     }
 }
