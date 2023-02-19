@@ -1,5 +1,5 @@
 extern crate pathfinding;
-use colored::{ColoredString, Colorize};
+use colored::Colorize;
 use std::{fmt::Display, hash::Hash};
 
 use pathfinding::prelude::astar;
